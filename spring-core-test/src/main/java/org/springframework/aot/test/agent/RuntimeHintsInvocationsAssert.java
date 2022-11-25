@@ -74,7 +74,7 @@ public class RuntimeHintsInvocationsAssert extends AbstractAssert<RuntimeHintsIn
 	 * @throws AssertionError if any of the recorded invocations has no match in the provided hints
 	 */
 	public void match(RuntimeHints runtimeHints) {
-		Assert.notNull(runtimeHints, "RuntimeHints should not be null");
+		Assert.notNull(runtimeHints, "RuntimeHints must not be null");
 		configureRuntimeHints(runtimeHints);
 		List<RecordedInvocation> noMatchInvocations =
 				this.actual.recordedInvocations().filter(invocation -> !invocation.matches(runtimeHints)).toList();
@@ -84,7 +84,7 @@ public class RuntimeHintsInvocationsAssert extends AbstractAssert<RuntimeHintsIn
 	}
 
 	public ListAssert<RecordedInvocation> notMatching(RuntimeHints runtimeHints) {
-		Assert.notNull(runtimeHints, "RuntimeHints should not be null");
+		Assert.notNull(runtimeHints, "RuntimeHints must not be null");
 		configureRuntimeHints(runtimeHints);
 		return ListAssert.assertThatStream(this.actual.recordedInvocations()
 				.filter(invocation -> !invocation.matches(runtimeHints)));
@@ -92,10 +92,18 @@ public class RuntimeHintsInvocationsAssert extends AbstractAssert<RuntimeHintsIn
 
 
 	private ErrorMessageFactory errorMessageForInvocation(RecordedInvocation invocation) {
-		return new BasicErrorMessageFactory("%nMissing <%s> for invocation <%s> on type <%s> %nwith arguments %s.%nStacktrace:%n<%s>",
-				invocation.getHintType().hintClassName(), invocation.getMethodReference(),
-				invocation.getInstanceTypeReference(), invocation.getArguments(),
-				formatStackTrace(invocation.getStackFrames()));
+		if (invocation.isStatic()) {
+			return new BasicErrorMessageFactory("%nMissing <%s> for invocation <%s>%nwith arguments %s.%nStacktrace:%n<%s>",
+					invocation.getHintType().hintClassName(), invocation.getMethodReference(),
+					invocation.getArguments(), formatStackTrace(invocation.getStackFrames()));
+		}
+		else {
+			Class<?> instanceType = (invocation.getInstance() instanceof  Class<?>) ? invocation.getInstance() : invocation.getInstance().getClass();
+			return new BasicErrorMessageFactory("%nMissing <%s> for invocation <%s> on type <%s> %nwith arguments %s.%nStacktrace:%n<%s>",
+					invocation.getHintType().hintClassName(), invocation.getMethodReference(),
+					instanceType, invocation.getArguments(),
+					formatStackTrace(invocation.getStackFrames()));
+		}
 	}
 
 	private String formatStackTrace(Stream<StackWalker.StackFrame> stackTraceElements) {

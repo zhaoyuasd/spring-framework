@@ -2731,7 +2731,7 @@ public class ServletAnnotationControllerHandlerMethodTests extends AbstractServl
 			vf.afterPropertiesSet();
 			binder.setValidator(vf);
 			assertThat(date).isEqualTo("2007-10-02");
-			assertThat(date2.length).isEqualTo(1);
+			assertThat(date2).hasSize(1);
 			assertThat(date2[0]).isEqualTo("2007-10-02");
 			SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 			dateFormat.setLenient(false);
@@ -2765,6 +2765,7 @@ public class ServletAnnotationControllerHandlerMethodTests extends AbstractServl
 
 	@Controller
 	@RequestMapping("/myPath.do")
+	@SuppressWarnings("serial")
 	static class MyParameterDispatchingController implements Serializable {
 
 		private static final long serialVersionUID = 1L;

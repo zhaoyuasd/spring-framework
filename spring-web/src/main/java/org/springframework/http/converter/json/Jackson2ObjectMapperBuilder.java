@@ -89,8 +89,6 @@ import org.springframework.util.xml.StaxUtils;
  * support for Kotlin classes and data classes</li>
  * </ul>
  *
- * <p>Compatible with Jackson 2.9 to 2.12, as of Spring 5.3.
- *
  * @author Sebastien Deleuze
  * @author Juergen Hoeller
  * @author Tadaya Tsuyukubo
@@ -552,7 +550,7 @@ public class Jackson2ObjectMapperBuilder {
 	/**
 	 * Variant of {@link #modules(Module...)} with a {@link Consumer} for full
 	 * control over the underlying list of modules.
-	 * @since 6.0
+	 * @since 5.3.22
 	 * @see #modules(Module...)
 	 * @see #modules(List)
 	 * @see com.fasterxml.jackson.databind.Module
@@ -588,7 +586,7 @@ public class Jackson2ObjectMapperBuilder {
 	/**
 	 * Variant of {@link #modulesToInstall(Module...)} with a {@link Consumer}
 	 * for full control over the underlying list of modules.
-	 * @since 6.0
+	 * @since 5.3.22
 	 * @see #modulesToInstall(Module...)
 	 * @see #modulesToInstall(Class...)
 	 * @see com.fasterxml.jackson.databind.Module
@@ -821,20 +819,20 @@ public class Jackson2ObjectMapperBuilder {
 
 	@SuppressWarnings("deprecation")  // on Jackson 2.13: configure(MapperFeature, boolean)
 	private void configureFeature(ObjectMapper objectMapper, Object feature, boolean enabled) {
-		if (feature instanceof JsonParser.Feature) {
-			objectMapper.configure((JsonParser.Feature) feature, enabled);
+		if (feature instanceof JsonParser.Feature jsonParserFeature) {
+			objectMapper.configure(jsonParserFeature, enabled);
 		}
-		else if (feature instanceof JsonGenerator.Feature) {
-			objectMapper.configure((JsonGenerator.Feature) feature, enabled);
+		else if (feature instanceof JsonGenerator.Feature jsonGeneratorFeature) {
+			objectMapper.configure(jsonGeneratorFeature, enabled);
 		}
-		else if (feature instanceof SerializationFeature) {
-			objectMapper.configure((SerializationFeature) feature, enabled);
+		else if (feature instanceof SerializationFeature serializationFeature) {
+			objectMapper.configure(serializationFeature, enabled);
 		}
-		else if (feature instanceof DeserializationFeature) {
-			objectMapper.configure((DeserializationFeature) feature, enabled);
+		else if (feature instanceof DeserializationFeature deserializationFeature) {
+			objectMapper.configure(deserializationFeature, enabled);
 		}
-		else if (feature instanceof MapperFeature) {
-			objectMapper.configure((MapperFeature) feature, enabled);
+		else if (feature instanceof MapperFeature mapperFeature) {
+			objectMapper.configure(mapperFeature, enabled);
 		}
 		else {
 			throw new FatalBeanException("Unknown feature class: " + feature.getClass().getName());

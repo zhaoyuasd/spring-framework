@@ -22,10 +22,10 @@ import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.security.Principal;
 
+import org.springframework.aot.hint.BindingReflectionHintsRegistrar;
 import org.springframework.aot.hint.ExecutableMode;
 import org.springframework.aot.hint.ReflectionHints;
 import org.springframework.aot.hint.annotation.ReflectiveProcessor;
-import org.springframework.context.aot.BindingReflectionHintsRegistrar;
 import org.springframework.core.MethodParameter;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
@@ -34,12 +34,13 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 
 /**
  * {@link ReflectiveProcessor} implementation for {@link MessageMapping}
- * annotated types. On top of registering reflection hints for invoking
+ * annotated types. In addition to registering reflection hints for invoking
  * the annotated method, this implementation handles:
+ *
  * <ul>
- *     <li>Return types.</li>
- *     <li>Parameters identified as potential payload.</li>
- *     <li>{@link Message} parameters.</li>
+ *     <li>Return types</li>
+ *     <li>Parameters identified as potential payloads</li>
+ *     <li>{@link Message} parameters</li>
  * </ul>
  *
  * @author Sebastien Deleuze
@@ -48,6 +49,7 @@ import org.springframework.messaging.support.MessageHeaderAccessor;
 class MessageMappingReflectiveProcessor implements ReflectiveProcessor {
 
 	private final BindingReflectionHintsRegistrar bindingRegistrar = new BindingReflectionHintsRegistrar();
+
 
 	@Override
 	public void registerReflectionHints(ReflectionHints hints, AnnotatedElement element) {
@@ -60,17 +62,17 @@ class MessageMappingReflectiveProcessor implements ReflectiveProcessor {
 	}
 
 	protected void registerTypeHints(ReflectionHints hints, Class<?> type) {
-		hints.registerType(type, hint -> {});
+		hints.registerType(type);
 	}
 
 	protected void registerMethodHints(ReflectionHints hints, Method method) {
-		hints.registerMethod(method, hint -> hint.setModes(ExecutableMode.INVOKE));
+		hints.registerMethod(method, ExecutableMode.INVOKE);
 		registerParameterHints(hints, method);
 		registerReturnValueHints(hints, method);
 	}
 
 	protected void registerParameterHints(ReflectionHints hints, Method method) {
-		hints.registerMethod(method, hint -> hint.setModes(ExecutableMode.INVOKE));
+		hints.registerMethod(method, ExecutableMode.INVOKE);
 		for (Parameter parameter : method.getParameters()) {
 			MethodParameter methodParameter = MethodParameter.forParameter(parameter);
 			if (Message.class.isAssignableFrom(methodParameter.getParameterType())) {
@@ -99,6 +101,8 @@ class MessageMappingReflectiveProcessor implements ReflectiveProcessor {
 	@Nullable
 	protected Type getMessageType(MethodParameter parameter) {
 		MethodParameter nestedParameter = parameter.nested();
-		return (nestedParameter.getNestedParameterType() == nestedParameter.getParameterType() ? null : nestedParameter.getNestedParameterType());
+		return (nestedParameter.getNestedParameterType() == nestedParameter.getParameterType() ?
+				null : nestedParameter.getNestedParameterType());
 	}
+
 }

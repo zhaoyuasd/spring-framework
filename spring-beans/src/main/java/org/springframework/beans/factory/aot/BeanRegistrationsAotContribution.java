@@ -25,6 +25,7 @@ import org.springframework.aot.generate.GeneratedMethod;
 import org.springframework.aot.generate.GeneratedMethods;
 import org.springframework.aot.generate.GenerationContext;
 import org.springframework.aot.generate.MethodReference;
+import org.springframework.aot.generate.MethodReference.ArgumentCodeGenerator;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.javapoet.ClassName;
 import org.springframework.javapoet.CodeBlock;
@@ -32,9 +33,11 @@ import org.springframework.javapoet.MethodSpec;
 
 /**
  * AOT contribution from a {@link BeanRegistrationsAotProcessor} used to
- * register bean definitions.
+ * register bean definitions and aliases.
  *
  * @author Phillip Webb
+ * @author Sebastien Deleuze
+ * @author Stephane Nicoll
  * @since 6.0
  * @see BeanRegistrationsAotProcessor
  */
@@ -43,12 +46,9 @@ class BeanRegistrationsAotContribution
 
 	private static final String BEAN_FACTORY_PARAMETER_NAME = "beanFactory";
 
-	private final Map<String, BeanDefinitionMethodGenerator> registrations;
+	private final Map<String, Registration> registrations;
 
-
-	BeanRegistrationsAotContribution(
-			Map<String, BeanDefinitionMethodGenerator> registrations) {
-
+	BeanRegistrationsAotContribution(Map<String, Registration> registrations) {
 		this.registrations = registrations;
 	}
 
@@ -63,13 +63,15 @@ class BeanRegistrationsAotContribution
 					type.addModifiers(Modifier.PUBLIC);
 				});
 		BeanRegistrationsCodeGenerator codeGenerator = new BeanRegistrationsCodeGenerator(generatedClass);
-		GeneratedMethod generatedMethod = codeGenerator.getMethods().add("registerBeanDefinitions", method ->
-				generateRegisterMethod(method, generationContext, codeGenerator));
-		beanFactoryInitializationCode.addInitializer(
-				MethodReference.of(generatedClass.getName(), generatedMethod.getName()));
+		GeneratedMethod generatedBeanDefinitionsMethod = codeGenerator.getMethods().add("registerBeanDefinitions", method ->
+				generateRegisterBeanDefinitionsMethod(method, generationContext, codeGenerator));
+		beanFactoryInitializationCode.addInitializer(generatedBeanDefinitionsMethod.toMethodReference());
+		GeneratedMethod generatedAliasesMethod = codeGenerator.getMethods().add("registerAliases",
+				this::generateRegisterAliasesMethod);
+		beanFactoryInitializationCode.addInitializer(generatedAliasesMethod.toMethodReference());
 	}
 
-	private void generateRegisterMethod(MethodSpec.Builder method,
+	private void generateRegisterBeanDefinitionsMethod(MethodSpec.Builder method,
 			GenerationContext generationContext,
 			BeanRegistrationsCode beanRegistrationsCode) {
 
@@ -78,16 +80,40 @@ class BeanRegistrationsAotContribution
 		method.addParameter(DefaultListableBeanFactory.class,
 				BEAN_FACTORY_PARAMETER_NAME);
 		CodeBlock.Builder code = CodeBlock.builder();
-		this.registrations.forEach((beanName, beanDefinitionMethodGenerator) -> {
-			MethodReference beanDefinitionMethod = beanDefinitionMethodGenerator
+		this.registrations.forEach((beanName, registration) -> {
+			MethodReference beanDefinitionMethod = registration.methodGenerator
 					.generateBeanDefinitionMethod(generationContext,
 							beanRegistrationsCode);
+			CodeBlock methodInvocation = beanDefinitionMethod.toInvokeCodeBlock(
+					ArgumentCodeGenerator.none(), beanRegistrationsCode.getClassName());
 			code.addStatement("$L.registerBeanDefinition($S, $L)",
 					BEAN_FACTORY_PARAMETER_NAME, beanName,
-					beanDefinitionMethod.toInvokeCodeBlock());
+					methodInvocation);
 		});
 		method.addCode(code.build());
 	}
+
+	private void generateRegisterAliasesMethod(MethodSpec.Builder method) {
+		method.addJavadoc("Register the aliases.");
+		method.addModifiers(Modifier.PUBLIC);
+		method.addParameter(DefaultListableBeanFactory.class,
+				BEAN_FACTORY_PARAMETER_NAME);
+		CodeBlock.Builder code = CodeBlock.builder();
+		this.registrations.forEach((beanName, registration) -> {
+			for (String alias : registration.aliases) {
+				code.addStatement("$L.registerAlias($S, $S)",
+						BEAN_FACTORY_PARAMETER_NAME, beanName, alias);
+			}
+		});
+		method.addCode(code.build());
+	}
+
+	/**
+	 * Gather the necessary information to register a particular bean.
+	 * @param methodGenerator the {@link BeanDefinitionMethodGenerator} to use
+	 * @param aliases the bean aliases, if any
+	 */
+	record Registration(BeanDefinitionMethodGenerator methodGenerator, String[] aliases) {}
 
 
 	/**

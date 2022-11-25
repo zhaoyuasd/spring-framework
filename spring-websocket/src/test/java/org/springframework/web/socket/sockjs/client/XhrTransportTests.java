@@ -39,22 +39,21 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 /**
- * Unit tests for
- * {@link org.springframework.web.socket.sockjs.client.AbstractXhrTransport}.
+ * Unit tests for {@link AbstractXhrTransport}.
  *
  * @author Rossen Stoyanchev
  */
-public class XhrTransportTests {
+class XhrTransportTests {
 
 	@Test
-	public void infoResponse() throws Exception {
+	void infoResponse() throws Exception {
 		TestXhrTransport transport = new TestXhrTransport();
 		transport.infoResponseToReturn = new ResponseEntity<>("body", HttpStatus.OK);
 		assertThat(transport.executeInfoRequest(new URI("https://example.com/info"), null)).isEqualTo("body");
 	}
 
 	@Test
-	public void infoResponseError() throws Exception {
+	void infoResponseError() throws Exception {
 		TestXhrTransport transport = new TestXhrTransport();
 		transport.infoResponseToReturn = new ResponseEntity<>("body", HttpStatus.BAD_REQUEST);
 		assertThatExceptionOfType(HttpServerErrorException.class).isThrownBy(() ->
@@ -62,7 +61,7 @@ public class XhrTransportTests {
 	}
 
 	@Test
-	public void sendMessage() throws Exception {
+	void sendMessage() throws Exception {
 		HttpHeaders requestHeaders = new HttpHeaders();
 		requestHeaders.set("foo", "bar");
 		requestHeaders.setContentType(MediaType.APPLICATION_JSON);
@@ -70,13 +69,13 @@ public class XhrTransportTests {
 		transport.sendMessageResponseToReturn = new ResponseEntity<>(HttpStatus.NO_CONTENT);
 		URI url = new URI("https://example.com");
 		transport.executeSendRequest(url, requestHeaders, new TextMessage("payload"));
-		assertThat(transport.actualSendRequestHeaders.size()).isEqualTo(2);
+		assertThat(transport.actualSendRequestHeaders).hasSize(2);
 		assertThat(transport.actualSendRequestHeaders.getFirst("foo")).isEqualTo("bar");
 		assertThat(transport.actualSendRequestHeaders.getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
 	}
 
 	@Test
-	public void sendMessageError() throws Exception {
+	void sendMessageError() throws Exception {
 		TestXhrTransport transport = new TestXhrTransport();
 		transport.sendMessageResponseToReturn = new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 		URI url = new URI("https://example.com");
@@ -85,7 +84,8 @@ public class XhrTransportTests {
 	}
 
 	@Test
-	public void connect() throws Exception {
+	@SuppressWarnings("deprecation")
+	void connect() throws Exception {
 		HttpHeaders handshakeHeaders = new HttpHeaders();
 		handshakeHeaders.setOrigin("foo");
 
@@ -106,7 +106,7 @@ public class XhrTransportTests {
 		verify(request).getHttpRequestHeaders();
 		verifyNoMoreInteractions(request);
 
-		assertThat(transport.actualHandshakeHeaders.size()).isEqualTo(1);
+		assertThat(transport.actualHandshakeHeaders).hasSize(1);
 		assertThat(transport.actualHandshakeHeaders.getOrigin()).isEqualTo("foo");
 
 		assertThat(transport.actualSession.isDisconnected()).isFalse();
